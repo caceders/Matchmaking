@@ -53,7 +53,7 @@ class GUI():
 
         Each match has a base-value varying from -1 (worst match) to 1 (perfect match)
         The value of the set of matches (set-values) is the average of all the base-values.
-        Theese have the same variations from -1 (worst set) to 1 (perfect set)
+        These have the same variations from -1 (worst set) to 1 (perfect set)
 
         The match-values can be calculated through the skill level of the each team or be set manually.
         """)
@@ -215,7 +215,7 @@ class GUI():
                 bestContest = None
                 bestValue = 0
                 amountOfTeams = len(self.teams)
-                for i in tqdm(range(amountOfTeams * set.numberOfValuesInAverage), desc='Calculating best set of ' + str(amountOfTeams) + ' teams...'):
+                for i in tqdm(range(amountOfTeams * set.numberOfValuesInAverage * 2), desc='Calculating best set of ' + str(amountOfTeams) + ' teams...'):
                     if( i > 999):
                         something = 0
                         pass
@@ -244,7 +244,7 @@ class GUI():
                 plt.plot([i for i in range(len(contests))], values, label = 'Set-score.')
                 plt.plot([i for i in range(len(contests))], averages, label = 'Moving average of ' + str(set.numberOfValuesInAverage) + ' sets.')
                 plt.legend()
-                plt.title('Set-scores and average of optimisation')
+                plt.title('Set-scores and average of optimization')
                 plt.grid(axis='y')
                 plt.xlabel('Itteration')
                 plt.ylabel('Score')
