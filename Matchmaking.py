@@ -46,11 +46,21 @@ class Team:
         """Adds other to list of teams this team cannot be matched with"""
         if not isinstance(team, Team):
             raise TypeError('Object added to blaclist of ' + self.name + ' is not of type Team')
-        elif team in self.blackList:
-            raise RuntimeError('Team ' + team.name + ' already in blackList for ' + self.name)
+        elif team in self.blackList or team == self:
+            pass
         else:
             self.blackList.append(team)
-            team.blackList.append(team)
+            team.blackList.append(self)
+
+    def RemoveFromBlackList(self, team):
+        """Adds other to list of teams this team cannot be matched with"""
+        if not isinstance(team, Team):
+            raise TypeError('Object added to blaclist of ' + self.name + ' is not of type Team')
+        elif team in self.blackList:
+            pass
+        else:
+            self.blackList.remove(team)
+            team.blackList.remove(team)
 
     def isBlackListed(self, team):
         """Checks if team is blacklisted"""
@@ -71,6 +81,19 @@ class Team:
             if not match.containsMatchedTeam():
                 matches.append(match)
         return matches
+
+    def getInfo(self, withblacklist:bool = False):
+
+        blacklisted = '.'
+        if(len(self.blackList) > 0 and withblacklist):
+            blacklisted += ' Cannot be matched with: '
+            for team in self.blackList:
+                blacklisted += team.name + ', '
+            
+            if len(blacklisted) > 80:
+                blacklisted = blacklisted[0: 80] + '...'
+
+        return (self.name + ' with a skill of ' + str(self.skill) + blacklisted)
 
 class Match:
     def __init__(self, team1: Team, team2: Team, baseValue:float = None,):
@@ -129,7 +152,7 @@ class Match:
             self.weigth += addition
 
 class Contest:
-    def __init__(self, teams, matches):
+    def __init__(self, teams, matches, unpairedTeam:Team = None):
         """
         Creates a contest with the teams and matches. Each team can only be in one match.
         """
@@ -137,6 +160,7 @@ class Contest:
         self.teams = []
         self.matches = []
         self.value = 0
+        self.unpairedTeam = unpairedTeam
 
         #List used to check if team already exist in a match
         self.matchedTeams = []
@@ -183,6 +207,9 @@ class Contest:
             infostring += match.getInfo()
             infostring += '\n'
         infostring += 'Total value: ' + str(self.value)
+
+    def hasUnpairedTeam(self):
+        return self.unpairedTeam != None
 
 class Set:
     def __init__(self, teams:list):
@@ -244,26 +271,52 @@ class Set:
 
     def createContest(self, weighted:bool = True) -> Contest:
         """Creates a contest, randomly or based on matchweigth"""
-        matches = []
-        #Shuffles team list to unbias the startingteams
-        random.shuffle(self.teams)
-        for team in self.teams:
-            if team.matchedWith == None:
-                availableMatches = team.getAvailableMatches()
-                match = None
-                if not weighted:
-                    match = random.choice(availableMatches)
+        oddNumberTeam = len(self.teams) % 2 == 1
+        createdLegalContest = False
+
+        timesNotFoundLegalContestInARow = -1
+        while(not createdLegalContest):
+            timesNotFoundLegalContestInARow += 1
+            if(timesNotFoundLegalContestInARow >= 100):
+                raise RuntimeError('No contest found!')
+            matches = []    
+            #Shuffles team list to unbias the startingteams
+            random.shuffle(self.teams)
+            for team in self.teams:
+                if team.matchedWith == None:
+                    availableMatches = team.getAvailableMatches()
+                    if(len(availableMatches) != 0):
+                        match = None
+                        if not weighted:
+                            match = random.choice(availableMatches)
+                        else:
+                            weights = []
+                            for match in availableMatches:
+                                weights.append(match.weigth)
+                            match = random.choices(availableMatches, weights, k=1)[0]
+                        other = match.getOther(team)
+                        team.matchedWith = other
+                        other.matchedWith = team
+                        matches.append(match)
+            unPairedTeam = None
+            if(oddNumberTeam):
+                if (len(self.teams) == (2 * len(matches) + 1)):
+                    for team in self.teams:
+                        if team.matchedWith == None:
+                            unPairedTeam = team
+                    contest = Contest(self.teams, matches, unPairedTeam)
+                    createdLegalContest = True
+                    timesNotFoundLegalContestInARow = -1
                 else:
-                    weights = []
-                    for match in availableMatches:
-                        weights.append(match.weigth)
-                    match = random.choices(availableMatches, weights, k=1)[0]
-                other = match.getOther(team)
-                team.matchedWith = other
-                other.matchedWith = team
-                matches.append(match)
-        contest = Contest(self.teams, matches)
-        self.resetMatching()
+                    pass
+            else:
+                if (len(self.teams) == (2 * len(matches))):
+                    contest = Contest(self.teams, matches)
+                    createdLegalContest = True
+                    timesNotFoundLegalContestInARow = -1
+            self.resetMatching()
+
+        #Only weigthed contest are stored and used for optimization
         if weighted:
             self.contests.append(contest)
         return contest

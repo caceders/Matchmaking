@@ -1,5 +1,7 @@
 """
-The GUI Element for 
+The GUI Element for matchmaking.
+
+I am so sorry for this mess
 """
 
 import numpy as np
@@ -102,10 +104,16 @@ class GUI():
                 self.inputing = True
                 while(self.inputing):
                     self.clearScreen()
-                    amountOfTeams = input('How many teams (0-200): ')
-                    if(not(amountOfTeams.isnumeric() and int(amountOfTeams) <= 200 and int(amountOfTeams) > 0)):
-                        print('Input must be an integer between 0-200')
+                    amountOfTeams = input('How many teams: ')
+                    if(not(amountOfTeams.isnumeric() and int(amountOfTeams) > 0)):
+                        print('Input must be a whole positive number')
                         input()
+                    elif(int(amountOfTeams) > 100):
+                        print('Are you sure? anything over 100 teams might take over 30 minutes to calculate. [y/n]')
+                        if(input(':') == 'y'):
+                            amountOfTeams = int(amountOfTeams)
+                            self.inputing = False
+
                     else:
                         amountOfTeams = int(amountOfTeams)
                         self.inputing = False
@@ -124,7 +132,7 @@ class GUI():
                     print('Created teams:')
                     print()
                     for team in self.teams:
-                        print(team.name + ' with a skill of ' + str(team.skill))
+                        print(team.getInfo(True))
                     print()
                     print("""
         Please select an option:
@@ -142,13 +150,17 @@ class GUI():
                     #Add a team
                     if(inp == str(1)):
                         while self.inputing:
+                            self.clearScreen()
+                            print('Created teams:')
+                            print()
+                            for team in self.teams:
+                                print(team.getInfo(True))
+                            print()
                             name = input('Enter a team-name: ')
                             skill = input('Enter a skill level between -10 and 10: ')
                             skill = skill.replace(' ','').replace(',','.').replace("−", "-")
-                            print(float(skill))
                             if ((not skill.replace('-','').isdigit()) or (float(skill)>float(10)) or (float(skill)<-10) or len(name)== 0):
                                 print('Invalid input')
-                                input()
                             else:
                                 self.inputing = False
                         self.teams.append(Matchmaking.Team(name, float(skill)))
@@ -157,10 +169,15 @@ class GUI():
                     #Remove a team
                     elif(inp == str(2)):
                         while self.inputing:
+                            self.clearScreen()
+                            print('Created teams:')
+                            print()
+                            for team in self.teams:
+                                print(team.getInfo(True))
+                            print()
                             name = input('Enter a team-name: ')
                             if (len(name)== 0):
                                 print('Invalid input')
-                                input()
                             else:
                                 self.inputing = False
                         for i in range(len(self.teams)):
@@ -174,13 +191,18 @@ class GUI():
                     #Edit a team
                     elif(inp == str(3)):
                         while self.inputing:
+                            self.clearScreen()
+                            print('Created teams:')
+                            print()
+                            for team in self.teams:
+                                print(team.getInfo(True))
+                            print()
                             oldname = input('Enter a team-name to change: ')
                             newname = input('Enter a new team-name: ')
                             skill = input('Enter a new skill level between -10 and 10: ')
                             skill = skill.replace(' ','').replace(',','.').replace("−", "-")
-                            if ((not skill.replace('-','').isdigit()) or (float(skill)>float(10)) or (float(skill)<-10) or len(name)== 0):
+                            if ((not skill.replace('-','').isdigit()) or (float(skill)>float(10)) or (float(skill)<-10) or len(newname)== 0):
                                 print('Invalid input')
-                                input()
                             else:
                                 self.inputing = False
                         for i in range(len(self.teams)):
@@ -190,10 +212,7 @@ class GUI():
                         self.inputing = True
 
                     elif(inp == str(4)):
-                        if(len(self.teams) % 2 != 0):
-                            print("Currently only supports an even amount of teams! Add or remove a team to continue.")
-                            input("")
-                        elif(len(self.teams) == 0):
+                        if(len(self.teams) == 0):
                             print("Need at leat two teams!")
                             input("")
                         else:
@@ -201,8 +220,136 @@ class GUI():
                             self.state = 3
                         pass
                     else:
-                        print('input not valid')
+                        print('invalid input')
                         input()
+
+                self.inputing = True
+                while(self.inputing):
+                    self.clearScreen()
+                    print('Created teams:')
+                    print()
+                    for team in self.teams:
+                        print(team.getInfo(True))
+                    print()
+                    print("""
+    All teams can be matched with eachother by default
+    Please select an option:
+
+    [1]: Input teams that CAN play against eachother
+
+    [2]: Input teams that CAN NOT play against eachother
+
+    [3]: Continue
+    """)        
+                    inp = input(':')
+
+                    ##Can only play against eachother
+                    if inp == '1':
+                        self.inputing = True
+                        while(self.inputing):
+                            self.clearScreen()
+                            print('Created teams:')
+                            print()
+                            for team in self.teams:
+                                print(team.getInfo(True))
+                            print()
+                            print('Input the name of teams that are able to play with eachother, seperated by a comma.')
+                            print('I.E: Team 1, Team 2, Team 3, Team 4')
+                            print('When done, press enter without inputing anything')
+                            teamNames = input(':')
+                            if(teamNames == ''):
+                                self.inputing = False
+                            else:
+                                if(not ', ' in teamNames):
+                                    print('Invalid input')
+                                else:
+                                    teamNames = teamNames.split(', ')
+                                    teamNames.reverse()
+                                    teamsToNotBlackList = []
+                                    InvalidInput = False
+
+                                    #Check if given names exists then prepares the teams for blacklisting
+                                    for name in teamNames:
+                                        found = False
+                                        for team in self.teams:
+                                            if name == team.name:
+                                                teamsToNotBlackList.append(team)
+                                                found = True
+                                        if(not found):
+                                            teamsToNotBlackList = []
+                                            print('invalid input. Could not find team "' + name + '".')
+                                            input('')
+                                            InvalidInput = True
+                                            break
+                                    if(not InvalidInput):
+                                        for team in teamsToNotBlackList:
+                                            for otherTeam in self.teams:
+                                                if (otherTeam in teamsToNotBlackList):
+                                                    if(team.isBlackListed(otherTeam)):
+                                                        team.RemoveFromBlackList(otherTeam)
+                                                        otherTeam.RemoveFromBlackList(team)
+                                                else:
+                                                    team.addToBlackList(otherTeam)
+                                                    otherTeam.addToBlackList(team)
+                        self.inputing = True
+
+                    
+                    #Can not play against eachother
+                    elif inp == '2':
+                        self.inputing = True
+                        while(self.inputing):
+                            self.clearScreen()
+                            print('Created teams:')
+                            print()
+                            for team in self.teams:
+                                print(team.getInfo(True))
+                            print()
+                            print('Input the name of teams that are unable to play with eachother, seperated by a comma.')
+                            print('I.E: Team 1, Team 2, Team 3, Team 4')
+                            print('When done, press enter without inputing anything')
+                            teamNames = input(':')
+                            if(teamNames == ''):
+                                self.inputing = False
+                            else:
+                                if(not ', ' in teamNames):
+                                    print('Invalid input')
+                                else:
+                                    teamNames = teamNames.split(', ')
+                                    teamNames.reverse()
+                                    teamsToBlackList = []
+                                    InvalidInput = False
+
+                                    #Check if given names exists then prepares the teams for blacklisting
+                                    for name in teamNames:
+                                        found = False
+                                        for team in self.teams:
+                                            if name == team.name:
+                                                found = True
+                                                teamsToBlackList.append(team)
+                                        if(not found):
+                                            teamsToBlackList = []
+                                            print('invalid input. Could not find team "' + name + '".')
+                                            input('')
+                                            InvalidInput = True
+                                            break
+                                    if(not InvalidInput):
+                                        for team in teamsToBlackList:
+                                            for otherTeam in teamsToBlackList:
+                                                if not (team == otherTeam):
+                                                    team.addToBlackList(otherTeam)
+                                                    otherTeam.addToBlackList(team)
+                        self.inputing = True
+
+                    elif inp == '3':
+                        self.inputing = False
+                    else:
+                        print('Invalid input')
+
+                
+                self.clearScreen()
+                print('')
+                                
+
 
             if(self.state == 3):
                 set = Matchmaking.Set(self.teams)
@@ -213,13 +360,22 @@ class GUI():
                 values = []
                 averages = []
                 bestContest = None
-                bestValue = 0
+                bestValue = -10
                 amountOfTeams = len(self.teams)
+                foundError = False
                 for i in tqdm(range(amountOfTeams * set.numberOfValuesInAverage * 2), desc='Calculating best set of ' + str(amountOfTeams) + ' teams...'):
-                    if( i > 999):
-                        something = 0
-                        pass
-                    contests.append(set.createContest())
+                    
+                    try:
+                        contests.append(set.createContest())
+                    except RuntimeError:
+                        (print(' ERROR: Could not make a set of matches with this configuration!'))
+                        input('')
+                        foundError = True
+                        newGui = GUI()
+                        newGui.begin()
+                        del self
+                        break
+
                     values.append(contests[-1].getScaledValue())
 
                     if (contests[-1].getScaledValue()) >= bestValue:
@@ -230,27 +386,31 @@ class GUI():
                     contests[-1].averageScaledValue = set.averageScaledValue
                     contests[-1].updateMatchWeigths()
                 
-                print()
-                print('Best set found:')
-                for match in bestContest.matches:
-                    print(match.getInfo())
-                
-                print()
-                print('Set value: ' + str(bestContest.getScaledValue()))
-                print('Average of last ' + str(set.numberOfValuesInAverage) + ' generated contests:' + str(set.averageScaledValue))
-                print()
-                print('Press enter to display graph')
-                input()
-                plt.plot([i for i in range(len(contests))], values, label = 'Set-score.')
-                plt.plot([i for i in range(len(contests))], averages, label = 'Moving average of ' + str(set.numberOfValuesInAverage) + ' sets.')
-                plt.legend()
-                plt.title('Set-scores and average of optimization')
-                plt.grid(axis='y')
-                plt.xlabel('Itteration')
-                plt.ylabel('Score')
-                plt.show()
-                print('Press enter to exit')
-                input()
-                self.run = False
+                if(not foundError):
+                    print()
+                    print('Best set found:')
+                    for match in bestContest.matches:
+                        print(match.getInfo())
+                    if(bestContest.hasUnpairedTeam()):
+                        print('One team without a match: ' + bestContest.unpairedTeam.getInfo())
+                    
+                    print()
+                    print('Set value: ' + str(bestContest.getScaledValue()))
+                    print('Average of last ' + str(set.numberOfValuesInAverage) + ' generated contests:' + str(set.averageScaledValue))
+                    print()
+                    print('Press enter to display graph')
+                    input()
+                    plt.plot([i for i in range(len(contests))], values, label = 'Set-score.')
+                    plt.plot([i for i in range(len(contests))], averages, label = 'Moving average of ' + str(set.numberOfValuesInAverage) + ' sets.')
+                    plt.legend()
+                    plt.title('Set-scores and average of optimization')
+                    plt.grid(axis='y')
+                    plt.xlabel('Itteration')
+                    plt.ylabel('Score')
+                    plt.show()
+                    print('Press enter to exit')
+                    input()
+            self.state = 0
+            
 main = GUI()
 main.begin()
